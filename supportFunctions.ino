@@ -19,7 +19,7 @@ void dSPINConfig(int acc, int myspeed)
   boardA.setAcc(acc);             // accelerate at 10000 steps/s/s
   boardA.setDec(acc);
   boardA.setSlewRate(SR_530V_us);   // Upping the edge speed increases torque.
-  boardA.setOCThreshold(OC_3000mA);  // OC threshold 750mA
+  boardA.setOCThreshold(OC_4500mA);  // OC threshold 750mA
   boardA.setPWMFreq(PWM_DIV_1, PWM_MUL_2); // 31.25kHz PWM freq
   boardA.setOCShutdown(OC_SD_ENABLE); // don't shutdown on OC
   boardA.setVoltageComp(VS_COMP_ENABLE); // don't compensate for motor V
@@ -30,9 +30,9 @@ void dSPINConfig(int acc, int myspeed)
                                     //  but this, as they will bring in and
                                     //  output the clock to keep them
                                     //  all in phase.
-  boardA.setAccKVAL(64);           // We'll tinker with these later, if needed.
-  boardA.setDecKVAL(64);
-  boardA.setRunKVAL(64);
+  boardA.setAccKVAL(96);           // We'll tinker with these later, if needed.
+  boardA.setDecKVAL(96);
+  boardA.setRunKVAL(96);
   boardA.setHoldKVAL(16);           // This controls the holding current; keep it low.
 
 }
@@ -49,7 +49,7 @@ void setBasicParams(int acc, int myspeed)
   boardA.setAcc(acc);             // accelerate at 10000 steps/s/s
   boardA.setDec(acc);
   boardA.setSlewRate(SR_530V_us);   // Upping the edge speed increases torque.
-  boardA.setOCThreshold(OC_3000mA);  // OC threshold 750mA
+  boardA.setOCThreshold(OC_4500mA);  // OC threshold 750mA
   boardA.setPWMFreq(PWM_DIV_1, PWM_MUL_2); // 31.25kHz PWM freq
   boardA.setOCShutdown(OC_SD_ENABLE); // don't shutdown on OC
   boardA.setVoltageComp(VS_COMP_ENABLE); // don't compensate for motor V
@@ -60,8 +60,8 @@ void setBasicParams(int acc, int myspeed)
                                     //  but this, as they will bring in and
                                     //  output the clock to keep them
                                     //  all in phase.
-  boardA.setAccKVAL(64);           // We'll tinker with these later, if needed.
-  boardA.setDecKVAL(64);
-  boardA.setRunKVAL(64);
+  boardA.setAccKVAL(96);           // We'll tinker with these later, if needed.
+  boardA.setDecKVAL(96);
+  boardA.setRunKVAL(96);
   boardA.setHoldKVAL(16);           // This controls the holding current; keep it low.
 }

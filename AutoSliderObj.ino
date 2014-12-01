@@ -88,7 +88,7 @@ void setup()
   pinMode(joystickPin, INPUT);
  
  //auto calibration push button
-  //pinMode(buttonPin, INPUT);
+  pinMode(calibrationPin, INPUT);
   pinMode(resetPin, INPUT);
 
   lcd.begin(16, 2);
