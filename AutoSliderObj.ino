@@ -20,11 +20,13 @@ LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
 const int calibrationPin = 8;
 const int joystickPin = 1;
 const int resetPin=A3;
+//dlugosc slidera w krokach*microstep
+const long length=185000;
 
 //configure sensor pins
 //joystick x pin
-int sensorPin = A4;
-//joystick y pin
+int sensorPin = A5;
+//pot pin
 int sensorPin2 = A2;
 
 //output pins
@@ -40,19 +42,23 @@ float MCstepperSpeed = 0;
 float maxSpeed = 200;
 int stepperAcc = 0;
 int oldStepperAcc = 0;
-int oldStepperSpeed=0;
+int oldStepperSpeed = 0;
 
 long oldPos = 0;
-long maxPos = 195000;
+
+long maxPos = length;
 
 int counterHelper = 0;
 
+//timelapse variables
 int timelapseTime=1;
 int timelapseCount=100;
 long timelapseInterval=1000;
 long lastShot=0;
 long lastShotTemp=0;
 int timerHelper=0;
+int currentPhotoNumber=0;
+
 int allow_prepare=0;
 
 //read joystick variables
@@ -89,7 +95,8 @@ void setup()
  
  //auto calibration push button
   pinMode(calibrationPin, INPUT);
-  pinMode(resetPin, INPUT);
+  
+  pinMode(resetPin, INPUT_PULLUP);
 
   lcd.begin(16, 2);
   lcd.clear();
@@ -101,9 +108,9 @@ void setup()
 
   while (digitalRead(joystickPin))
   { 
-
+    
   }
-
+  delay(500);
   pinMode(ledPin, OUTPUT);
   pinMode(shutterPin, OUTPUT);
   allow_prepare=1;
@@ -111,14 +118,16 @@ void setup()
 
 void prepare()
 {
+  currentPhotoNumber=0;
   lcd.clear();
  // buttonState=debounce(calibrationPin);
   if (firstrun==1) {
-  dSPINConfig(64,10000);
+  dSPINConfig(64,200,96);
   while (debounce(calibrationPin))
   {
     lcd.setCursor(0, 0);
-    lcd.print("Calibration:");
+    lcd.print("Kalibracja");
+    //lcd.print("Calibration:");
     boardA.run(REV, 200);
     //CalibPin.update();
     //buttonState=debounce(calibrationPin);
@@ -129,6 +138,7 @@ void prepare()
   firstrun=0;  
 }
 else {
+  setBasicParams(64,200,96);
        while (boardA.getPos()!=0)
         {
           boardA.goHome();
@@ -153,6 +163,8 @@ else {
       delay(150);
     }
     lcd.setCursor(0, 0);
+    lcd.print("Wybierz tryb");
+    lcd.setCursor(0, 1);
     lcd.print(menus[menu]+"         ");  
   }
   lcd.clear();
@@ -162,24 +174,27 @@ else {
   oldtime=0;
   first=1;
   joystickOutput=0;  
-  
+  setBasicParams(64,200,96);
   if (menu==0)
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Set timelapse time:");
+    lcd.print("Czas timelapse:");
+    //lcd.print("Set timelapse time:");
     while(!debounce(joystickPin))
     {
       sensorValue = analogRead(sensorPin);
       timelapseTime=readJoystick(sensorValue, timelapseTime,0,240);
       lcd.setCursor(0, 1);
-      lcd.print(String((int)timelapseTime)+"     ");
+      lcd.print(String((int)timelapseTime)+" min    ");
       delay(150);
     }
+    if (timelapseTime>20)
+    setBasicParams(64,200,48);
     lcd.clear();
     lcd.setCursor(0, 0);
     delay(500);
-    lcd.print("Set number of photos:");
+    lcd.print("Liczba zdjec:");
     
   //reinitialize read joystick variables
   oldtime=0;
@@ -191,7 +206,7 @@ else {
       sensorValue = analogRead(sensorPin);    
       timelapseCount=readJoystick(sensorValue, timelapseCount,100,1000);
       lcd.setCursor(0, 1);
-      lcd.print(String((int)timelapseCount)+"    ");
+      lcd.print(String(timelapseCount)+"    ");
       delay(150);
     }
     if (timelapseTime==0)
@@ -201,9 +216,10 @@ else {
     timelapseInterval=calculateTimelapseInterval(timelapseTime,timelapseCount);
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("int:");
+    lcd.print("Interwal:");
     lcd.setCursor(0, 1);
-    lcd.print(timelapseInterval);
+    lcd.print((long)timelapseInterval);
+    //delay(1000);
 
     while (!debounce(joystickPin))
     { 
@@ -214,7 +230,7 @@ else {
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Set speed:");
+    lcd.print("Ustaw predkosc:");
     //set speed
     delay(500);
     
@@ -233,7 +249,7 @@ else {
     }
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Set acceleration:");
+    lcd.print("Ustaw przyspieszenie:");
     //wait
     delay(500);
     //set acceleration
@@ -252,7 +268,10 @@ else {
         delay(150);
     } 
     lcd.clear();
-    dSPINConfig(stepperAcc,MCstepperSpeed);
+    if (MCstepperSpeed>20)
+    dSPINConfig(stepperAcc,MCstepperSpeed,96);
+    else
+    dSPINConfig(stepperAcc,MCstepperSpeed,48);
   }  
 }
 
@@ -276,17 +295,25 @@ void loop()
   //timelapse
   if (menu==0)
   {
+    
+
+    
     boardA.run(FWD, stepperSpeed);
     if (boardA.getPos()>maxPos)
     {
       stepperSpeed = 0;  
-      if (boardA.getPos()>maxPos)
-      {
+      //if (boardA.getPos()>maxPos)
+      //{
         maxPos=boardA.getPos();
         boardA.setPos(maxPos);
         boardA.hardStop();
-      }   
+        setBasicParams(64,200,96);   
+        //timelapseInterval=1;
+      //}   
     }
+    else {
+      if (currentPhotoNumber<timelapseCount) 
+      {
     if (millis()-lastShot>=timelapseInterval)
     {
       if (timerHelper<500)
@@ -294,17 +321,38 @@ void loop()
         if (timerHelper==0)
         {
           lastShotTemp=millis();
+          
+          currentPhotoNumber++;
+          lcd.setCursor(0,0);
+          lcd.print("Numer zdjecia");
+          lcd.setCursor(0, 1);
+          lcd.print((String)currentPhotoNumber+"/"+(String)timelapseCount+"    ");
         }
         timerHelper++;
         digitalWrite(shutterPin, HIGH);
       }
       else {
         timerHelper=0;
-        lastShot=lastShotTemp; 
+        lastShot=lastShotTemp;
+        //digitalWrite(shutterPin, LOW);
       }
     }
-    else digitalWrite(shutterPin, LOW);
+    else {digitalWrite(shutterPin, LOW);
   }
+  }
+  else {
+        lcd.clear();
+        lcd.print("Koniec timelapse");
+        lcd.setCursor(0, 1);
+        while (!debounce(joystickPin))
+        {
+        allow_prepare=1;
+        }
+  }
+    }
+  
+  }
+  
   //free run
   if (menu==1)
   {
@@ -395,18 +443,36 @@ void loop()
     //}
   }
 
-  //speedDisplay=String(boardA.getPos())+"         ";
+  //if (menu==0)
+  //{
+  //lcd.setCursor(0,0);
+  //lcd.print("Numer zdjecia");
+  //lcd.setCursor(0, 1);
+ // lcd.print((String)currentPhotoNumber+"/"+(String)timelapseCount+"    ");
+  //}
+  //else {
+  if (menu==1||menu==2)
+  {
+    speedDisplay=String(boardA.getPos())+"         ";
   speedDisplay=String((int)stepperSpeed)+"         ";
+  lcd.setCursor(0,0);
+  lcd.print("Predkosc [k/s]:");
   lcd.setCursor(0, 1);
   lcd.print(speedDisplay);
+  }
+  //}
+
 
 //resetState=digitalRead(resetPin);
-if (digitalRead(resetPin))
+if (!digitalRead(resetPin))
 {
      lcd.setCursor(0, 1);
      lcd.print("RESET");
      delay(2000);
      allow_prepare=1; 
+     maxPos=length;
+     counterHelper=0;
+     canStart=1;
 }
 }
 
@@ -457,12 +523,13 @@ double speedOK(int value)
 }
 double calculateTimelapseSpeed(long tt)
 {
-  return (double)(19500.0/double(128*tt*6)); 
+  return (double)((length)/double(128*tt*60)); 
   //return 0.5;
 }
 long calculateTimelapseInterval(long tt, long amount)
 {
-  return (tt*60*1000)/amount;
+  //return 600;
+  return (long)((tt*60*1000)/amount);
 }
 float readJoystick(float inputValue, float currentOutput,float minValue, float maxValue)
 {
