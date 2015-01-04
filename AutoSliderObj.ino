@@ -3,8 +3,8 @@
 #include <dSPINConstants.h>
 #include <SPI.h>
 #include <LiquidCrystal.h>
-#include <avr/wdt.h>
-#define SMOOTHSTEP(x) ((x) * (x) * (3 - 2 * (x)))
+//include <avr/wdt.h>
+//#define SMOOTHSTEP(x) ((x) * (x) * (3 - 2 * (x)))
 
 //create autodriver board
 AutoDriver boardA(10, 9);
@@ -83,8 +83,8 @@ long debounceDelay = 50;    // the debounce time; increase if the output flicker
 
 String speedDisplay= "";
 //menu
-String menus[3] = { 
-  "Timelapse", "Free run", "Motion Control" };
+String menus[4] = { 
+  "Timelapse", "Ruch swobodny", "Motion Control", "Motion Control 2"};
 
 void setup()
 {
@@ -152,16 +152,21 @@ else {
   {
     sensorValue = analogRead(sensorPin);
     //joyState = map(sensorValue, 0, 1023, -64, 64);
-    if (menu>=0&&sensorValue>=600&&menu<2)
+    if (sensorValue<400)
     {
       menu = menu++;
-      delay(150);
+      delay(250);
+      if (menu>2)
+      menu=0;
     }
-    else if (menu>0&&sensorValue<400&&menu<=2)
+    else if (sensorValue>=600)
     {
       menu = menu--;
-      delay(150);
+      delay(250);
+      if (menu<0)
+      menu=2;
     }
+    //else {menu=0; delay(250);}
     lcd.setCursor(0, 0);
     lcd.print("Wybierz tryb");
     lcd.setCursor(0, 1);
@@ -184,12 +189,12 @@ else {
     while(!debounce(joystickPin))
     {
       sensorValue = analogRead(sensorPin);
-      timelapseTime=readJoystick(sensorValue, timelapseTime,0,240);
+      timelapseTime=readJoystick(sensorValue,timelapseTime,0,240);
       lcd.setCursor(0, 1);
       lcd.print(String((int)timelapseTime)+" min    ");
       delay(150);
     }
-    if (timelapseTime>20)
+    if (timelapseTime>2)
     setBasicParams(64,200,48);
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -242,6 +247,7 @@ else {
     while (!debounce(joystickPin))
     {
      sensorValue = analogRead(sensorPin);
+     //invert values
      MCstepperSpeed=readJoystick(sensorValue, MCstepperSpeed,0,200);  
      lcd.setCursor(0, 1);
      lcd.print(String((int)MCstepperSpeed)+"    ");
@@ -268,10 +274,13 @@ else {
         delay(150);
     } 
     lcd.clear();
+    //if (MCstepperSpeed>150)
     if (MCstepperSpeed>20)
     dSPINConfig(stepperAcc,MCstepperSpeed,96);
     else
     dSPINConfig(stepperAcc,MCstepperSpeed,48);
+    //else if 
+    //dSPINConfig(stepperAcc,MCstepperSpeed,48);
   }  
 }
 
@@ -362,6 +371,7 @@ void loop()
     }
     sensorValue2 = analogRead(sensorPin2);
     //stepperAcc = map(sensorValue2, 16, 1023, 1, 200);
+    //invert values
     maxSpeed = map(sensorValue2, 0, 1023, 10, 200);
     
     /*if (abs(stepperAcc-oldStepperAcc)>2)
@@ -377,18 +387,20 @@ void loop()
     stepperSpeed = speedOK(sensorValue);
       
     //lcd.clear();
-    lcd.print(stepperSpeed);
+    //lcd.print(stepperSpeed);
 
-    if (stepperSpeed<0)
+    if (stepperSpeed<-1)
     {
       boardA.run(REV, -stepperSpeed);
     }
-    else if (stepperSpeed>0)
+    else if (stepperSpeed>1)
     {
       boardA.run(FWD, stepperSpeed);
     }
     else {
       boardA.run(FWD, 0);
+      //delay(250);
+      //boardA.hardStop();
     }
     if (boardA.getPos()<0||boardA.getPos()>maxPos)
     {
@@ -429,7 +441,7 @@ void loop()
       }
       else {
         lcd.clear();
-        lcd.print("Odtwarzanie ruchu");
+        lcd.print("Odtwarzam ruch");
         lcd.setCursor(0, 1);
         canStart=1; 
         counterHelper=0;
@@ -451,7 +463,7 @@ void loop()
  // lcd.print((String)currentPhotoNumber+"/"+(String)timelapseCount+"    ");
   //}
   //else {
-  if (menu==1||menu==2)
+  if (menu==1)//||menu==2)
   {
     speedDisplay=String(boardA.getPos())+"         ";
   speedDisplay=String((int)stepperSpeed)+"         ";
@@ -533,7 +545,7 @@ long calculateTimelapseInterval(long tt, long amount)
 }
 float readJoystick(float inputValue, float currentOutput,float minValue, float maxValue)
 {
-  if (currentOutput>=minValue&&inputValue>=600&&currentOutput<maxValue)
+  if (currentOutput>=minValue&&inputValue<=400&&currentOutput<maxValue)
       {
         if(first)
         {
@@ -553,7 +565,7 @@ float readJoystick(float inputValue, float currentOutput,float minValue, float m
         }
         //first=1;
       }
-      else if (currentOutput>minValue&&inputValue<=400&&currentOutput<=maxValue)
+      else if (currentOutput>minValue&&inputValue>=600&&currentOutput<=maxValue)
       {
         if(first)
         {
